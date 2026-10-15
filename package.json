@@ -1,0 +1,31 @@
+{
+  "name": "gam-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Google Ad Manager reporting",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "gam-mcp": "src/index.js"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "start": "node src/index.js"
+  },
+  "keywords": ["mcp", "google-ad-manager", "gam", "advertising", "publisher"],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "axios": "^1.7.0",
+    "chrono-node": "^2.10.3",
+    "google-auth-library": "^11.3.1",
+    "open": "^10.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  },
+  "jest": {
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"]
+  }
+}
