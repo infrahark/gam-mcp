@@ -3,7 +3,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { parseArgs } from 'node:util';
-import { getAuthClient } from './auth.js';
+import { getAuthClient, loadNetworkCode, saveNetworkCode } from './auth.js';
+import { fetchNetworks } from './networks.js';
 import { getLineItemDelivery, getOrderRevenue, getAdUnitPerformance } from './reports.js';
 import { getForecast } from './forecast.js';
 
@@ -16,16 +17,36 @@ const { values: cliArgs } = parseArgs({
   strict: false,
 });
 
-if (!cliArgs['network-code']) {
-  console.error('Error: --network-code is required\nUsage: npx gam-mcp --network-code YOUR_NETWORK_CODE');
-  process.exit(1);
-}
-
-const networkCode = cliArgs['network-code'];
 const authClient = await getAuthClient({
   credentialsFile: cliArgs['credentials-file'],
   setup: cliArgs.setup,
 });
+
+let networkCode = cliArgs['network-code'];
+
+if (networkCode) {
+  saveNetworkCode(networkCode);
+} else {
+  networkCode = loadNetworkCode();
+}
+
+if (!networkCode) {
+  const networks = await fetchNetworks(authClient);
+  if (networks.length === 1) {
+    networkCode = networks[0].networkCode;
+    saveNetworkCode(networkCode);
+    console.error(`Auto-detected GAM network: ${networks[0].displayName || networkCode} (${networkCode})`);
+  } else if (networks.length > 1) {
+    console.error(
+      'Multiple GAM networks found. Re-run with --network-code:\n' +
+      networks.map((n) => `  --network-code ${n.networkCode}  (${n.displayName || 'unnamed'})`).join('\n')
+    );
+    process.exit(1);
+  } else {
+    console.error('No GAM networks found for this account. Pass --network-code explicitly.');
+    process.exit(1);
+  }
+}
 
 const server = new Server(
   { name: 'gam-mcp', version: '1.0.0' },

@@ -9,7 +9,7 @@ const mockFs = {
 };
 jest.unstable_mockModule('node:fs', () => ({ default: mockFs }));
 
-const { loadTokens, saveTokens, getAccessToken, resolveClientId, _makeCallbackHandler } = await import('../src/auth.js');
+const { loadTokens, saveTokens, getAccessToken, resolveClientId, _makeCallbackHandler, loadNetworkCode, saveNetworkCode } = await import('../src/auth.js');
 
 describe('loadTokens', () => {
   it('returns null when token file does not exist', () => {
@@ -43,6 +43,41 @@ describe('getAccessToken', () => {
       getAccessToken: jest.fn().mockRejectedValue(new Error('invalid_grant'))
     };
     await expect(getAccessToken(badClient)).rejects.toThrow('--setup');
+  });
+});
+
+describe('loadNetworkCode', () => {
+  it('returns null when no token file', () => {
+    mockFs.existsSync.mockReturnValue(false);
+    expect(loadNetworkCode()).toBeNull();
+  });
+
+  it('returns null when networkCode not in file', () => {
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.readFileSync.mockReturnValue(JSON.stringify({ tokens: mockTokens, clientId: 'id' }));
+    expect(loadNetworkCode()).toBeNull();
+  });
+
+  it('returns stored networkCode', () => {
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.readFileSync.mockReturnValue(JSON.stringify({ tokens: mockTokens, clientId: 'id', networkCode: '99999' }));
+    expect(loadNetworkCode()).toBe('99999');
+  });
+});
+
+describe('saveNetworkCode', () => {
+  it('merges networkCode into existing token file', () => {
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.readFileSync.mockReturnValue(JSON.stringify({ tokens: mockTokens, clientId: 'my-id' }));
+    mockFs.mkdirSync.mockReset();
+    mockFs.writeFileSync.mockReset();
+
+    saveNetworkCode('12345');
+
+    expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+      expect.stringContaining('tokens.json'),
+      JSON.stringify({ tokens: mockTokens, clientId: 'my-id', networkCode: '12345' })
+    );
   });
 });
 

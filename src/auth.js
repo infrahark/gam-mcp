@@ -17,9 +17,19 @@ export function loadTokens() {
   return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
 }
 
-export function saveTokens(tokens, clientId) {
+export function saveTokens(tokens, clientId, extras = {}) {
   fs.mkdirSync(TOKEN_DIR, { recursive: true });
-  fs.writeFileSync(TOKEN_PATH, JSON.stringify({ tokens, clientId }));
+  fs.writeFileSync(TOKEN_PATH, JSON.stringify({ tokens, clientId, ...extras }));
+}
+
+export function loadNetworkCode() {
+  return loadTokens()?.networkCode ?? null;
+}
+
+export function saveNetworkCode(networkCode) {
+  const stored = loadTokens();
+  if (!stored) throw new Error('No tokens found. Run --setup first.');
+  saveTokens(stored.tokens, stored.clientId, { networkCode });
 }
 
 async function getFreePort() {
