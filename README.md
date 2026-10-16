@@ -2,14 +2,26 @@
 
 MCP server for Google Ad Manager. Pull line item delivery, order revenue, ad unit performance, and inventory forecasts directly in Claude.
 
-## Installation
+## Quick start
 
-Add to your `claude_desktop_config.json` (Mac: `~/Library/Application Support/Claude/claude_desktop_config.json`):
+**Step 1 — Authenticate (run once in Terminal):**
+
+```bash
+npx gam-report-mcp --setup
+```
+
+A browser window opens. Sign in with the Google account that has access to your GAM network and click Allow. Your token and network code are saved locally and auto-refresh.
+
+**Step 2 — Add to Claude:**
+
+### Claude Desktop
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (create it if it doesn't exist):
 
 ```json
 {
   "mcpServers": {
-    "gam": {
+    "gam-report": {
       "command": "npx",
       "args": ["gam-report-mcp"]
     }
@@ -17,21 +29,23 @@ Add to your `claude_desktop_config.json` (Mac: `~/Library/Application Support/Cl
 }
 ```
 
-Then run the one-time auth setup:
+Restart Claude Desktop. GAM tools will appear automatically.
+
+### Claude Code (CLI)
 
 ```bash
-npx gam-report-mcp --setup
+claude mcp add gam-report -- npx gam-report-mcp
 ```
 
-A browser window will open. Sign in with the Google account that has access to your GAM network, click **Allow**, and you're done. Your token and network code are saved locally and auto-refresh.
+Then restart Claude Code.
 
-## Authentication setup
+## Authentication
 
-gam-report-mcp includes a bundled OAuth client — no GCP project required. On first run it opens a browser for Google sign-in. Your token is saved at `~/.gam-report-mcp/tokens.json`.
+gam-report-mcp includes a bundled OAuth client — no GCP project required. Your token is saved at `~/.gam-mcp/tokens.json` and refreshes automatically.
 
-Your GAM network code is detected automatically. If your account has multiple networks, you'll be prompted to pass `--network-code`.
+Your GAM network code is detected automatically on first run. If your account has multiple networks you'll be prompted to pass `--network-code`.
 
-**Using your own GCP credentials** (optional): Download your OAuth credentials JSON and add `--credentials-file /path/to/credentials.json` to both the config args and the setup command.
+**Using your own GCP credentials** (optional): add `--credentials-file /path/to/credentials.json` to both the setup command and the config args.
 
 ## Re-authenticate
 
