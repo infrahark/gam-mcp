@@ -7,7 +7,8 @@ import path from 'node:path';
 import os from 'node:os';
 import open from 'open';
 
-export const BUNDLED_CLIENT_ID = ''; // Fill after GCP OAuth app registration
+export const BUNDLED_CLIENT_ID = '396176735707-26gjcfksac142lq047j32s04aglehfnc.apps.googleusercontent.com';
+export const BUNDLED_CLIENT_SECRET = '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';
 
 const TOKEN_DIR = path.join(os.homedir(), '.gam-mcp');
 const TOKEN_PATH = path.join(TOKEN_DIR, 'tokens.json');
@@ -60,13 +61,13 @@ export function _makeCallbackHandler(resolve, reject, getServer) {
   };
 }
 
-async function runOAuthFlow(clientId) {
+async function runOAuthFlow(clientId, clientSecret) {
   const port = await getFreePort();
   const redirectUri = `http://localhost:${port}/callback`;
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
 
-  const client = new OAuth2Client({ clientId, redirectUri });
+  const client = new OAuth2Client({ clientId, clientSecret, redirectUri });
   const authUrl = client.generateAuthUrl({
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/admanager'],
@@ -88,27 +89,31 @@ async function runOAuthFlow(clientId) {
   return tokens;
 }
 
-export function resolveClientId(credentialsFile) {
-  if (!credentialsFile) return BUNDLED_CLIENT_ID;
+export function resolveCredentials(credentialsFile) {
+  if (!credentialsFile) return { clientId: BUNDLED_CLIENT_ID, clientSecret: BUNDLED_CLIENT_SECRET };
   const creds = JSON.parse(fs.readFileSync(credentialsFile, 'utf8'));
   const entry = creds.installed || creds.web;
   if (!entry?.client_id) {
     throw new Error('Could not find client_id in credentials file. Expected {"installed":{"client_id":...}} or {"web":{"client_id":...}}');
   }
-  return entry.client_id;
+  return { clientId: entry.client_id, clientSecret: entry.client_secret ?? null };
+}
+
+export function resolveClientId(credentialsFile) {
+  return resolveCredentials(credentialsFile).clientId;
 }
 
 export async function getAuthClient({ credentialsFile, setup } = {}) {
-  const clientId = resolveClientId(credentialsFile);
-  if (!clientId) throw new Error('No client ID configured. Set BUNDLED_CLIENT_ID or pass --credentials-file.');
+  const { clientId, clientSecret } = resolveCredentials(credentialsFile);
+  if (!clientId) throw new Error('No client ID configured. Pass --credentials-file.');
 
   const stored = loadTokens();
   if (setup || !stored) {
-    await runOAuthFlow(clientId);
+    await runOAuthFlow(clientId, clientSecret);
   }
 
   const { tokens } = loadTokens();
-  const client = new OAuth2Client({ clientId });
+  const client = new OAuth2Client({ clientId, clientSecret });
   client.setCredentials(tokens);
 
   client.on('tokens', (newTokens) => {

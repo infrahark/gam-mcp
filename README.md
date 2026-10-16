@@ -11,39 +11,32 @@ Add to your `claude_desktop_config.json` (Mac: `~/Library/Application Support/Cl
   "mcpServers": {
     "gam": {
       "command": "npx",
-      "args": ["gam-mcp", "--network-code", "YOUR_NETWORK_CODE"]
+      "args": ["gam-mcp"]
     }
   }
 }
 ```
 
-Replace `YOUR_NETWORK_CODE` with your GAM network code (visible in the URL when logged into Ad Manager: `admanager.google.com/12345678/`).
+Then run the one-time auth setup:
+
+```bash
+npx gam-mcp --setup
+```
+
+A browser window will open. Sign in with the Google account that has access to your GAM network, click **Allow**, and you're done. Your token and network code are saved locally and auto-refresh.
 
 ## Authentication setup
 
-gam-mcp uses OAuth 2.0 and requires a Google Cloud OAuth client ID. You have two options:
+gam-mcp includes a bundled OAuth client — no GCP project required. On first run it opens a browser for Google sign-in. Your token is saved at `~/.gam-mcp/tokens.json`.
 
-**Option A — Use your own GCP credentials (recommended for all users now):**
+Your GAM network code is detected automatically. If your account has multiple networks, you'll be prompted to pass `--network-code`.
 
-1. Create a project at https://console.cloud.google.com
-2. Enable the **Google Ad Manager API**
-3. Create an OAuth 2.0 client ID (type: **Desktop app**)
-4. Download the credentials JSON
-
-Add `--credentials-file` to your config:
-
-```json
-"args": ["gam-mcp", "--network-code", "12345", "--credentials-file", "/Users/you/credentials.json"]
-```
-
-On first use, a browser window will open asking you to authorize access. Click **Allow**. Your token is saved locally at `~/.gam-mcp/tokens.json` and auto-refreshes.
-
-**Option B — Bundled credentials (coming soon):** A shared OAuth client will be bundled in a future release so you won't need to create your own GCP project.
+**Using your own GCP credentials** (optional): Download your OAuth credentials JSON and add `--credentials-file /path/to/credentials.json` to both the config args and the setup command.
 
 ## Re-authenticate
 
 ```bash
-npx gam-mcp --network-code YOUR_NETWORK_CODE --credentials-file /path/to/credentials.json --setup
+npx gam-mcp --setup
 ```
 
 ## Available tools
