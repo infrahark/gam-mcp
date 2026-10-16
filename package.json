@@ -1,11 +1,11 @@
 {
-  "name": "gam-mcp",
+  "name": "gam-report-mcp",
   "version": "1.0.0",
   "description": "MCP server for Google Ad Manager reporting",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "gam-mcp": "src/index.js"
+    "gam-report-mcp": "src/index.js"
   },
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest",

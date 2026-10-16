@@ -1,4 +1,4 @@
-# gam-mcp
+# gam-report-mcp
 
 MCP server for Google Ad Manager. Pull line item delivery, order revenue, ad unit performance, and inventory forecasts directly in Claude.
 
@@ -11,7 +11,7 @@ Add to your `claude_desktop_config.json` (Mac: `~/Library/Application Support/Cl
   "mcpServers": {
     "gam": {
       "command": "npx",
-      "args": ["gam-mcp"]
+      "args": ["gam-report-mcp"]
     }
   }
 }
@@ -20,14 +20,14 @@ Add to your `claude_desktop_config.json` (Mac: `~/Library/Application Support/Cl
 Then run the one-time auth setup:
 
 ```bash
-npx gam-mcp --setup
+npx gam-report-mcp --setup
 ```
 
 A browser window will open. Sign in with the Google account that has access to your GAM network, click **Allow**, and you're done. Your token and network code are saved locally and auto-refresh.
 
 ## Authentication setup
 
-gam-mcp includes a bundled OAuth client — no GCP project required. On first run it opens a browser for Google sign-in. Your token is saved at `~/.gam-mcp/tokens.json`.
+gam-report-mcp includes a bundled OAuth client — no GCP project required. On first run it opens a browser for Google sign-in. Your token is saved at `~/.gam-report-mcp/tokens.json`.
 
 Your GAM network code is detected automatically. If your account has multiple networks, you'll be prompted to pass `--network-code`.
 
@@ -36,7 +36,7 @@ Your GAM network code is detected automatically. If your account has multiple ne
 ## Re-authenticate
 
 ```bash
-npx gam-mcp --setup
+npx gam-report-mcp --setup
 ```
 
 ## Available tools
