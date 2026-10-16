@@ -7,7 +7,11 @@ const POLL_INTERVAL_MS = 5000;
 const MAX_POLLS = 60;
 
 let sleepFn = (ms) => new Promise((r) => setTimeout(r, ms));
-export const _forTests = { setSleep: (fn) => { sleepFn = fn; } };
+let maxPolls = MAX_POLLS;
+export const _forTests = {
+  setSleep: (fn) => { sleepFn = fn; },
+  setMaxPolls: (n) => { maxPolls = n; },
+};
 
 async function gamRequest(method, path, data, authClient) {
   const token = await getAccessToken(authClient);
@@ -21,13 +25,33 @@ async function gamRequest(method, path, data, authClient) {
   return response.data;
 }
 
+function parseCsvRow(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
 function parseReportCsv(csv) {
-  const lines = csv.trim().split('\n');
+  const lines = csv.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',');
-  return lines.slice(1).map((line) => {
-    const values = line.split(',');
-    return Object.fromEntries(headers.map((h, i) => [h.trim(), values[i]?.trim()]));
+  const headers = parseCsvRow(lines[0]).map((h) => h.trim());
+  return lines.slice(1).filter((l) => l.trim()).map((line) => {
+    const values = parseCsvRow(line);
+    return Object.fromEntries(headers.map((h, i) => [h, values[i]?.trim() ?? '']));
   });
 }
 
@@ -38,14 +62,13 @@ async function runReport(networkCode, reportDefinition, authClient) {
 
   await gamRequest('POST', `/networks/${networkCode}/reports/${reportId}:run`, {}, authClient);
 
-  for (let i = 0; i < MAX_POLLS; i++) {
+  for (let i = 0; i < maxPolls; i++) {
     await sleepFn(POLL_INTERVAL_MS);
     const status = await gamRequest('GET', `/networks/${networkCode}/reports/${reportId}`, {}, authClient);
     const op = status.reportOperation;
 
     if (op?.reportStatus === 'DONE') {
-      const token = await getAccessToken(authClient);
-      const csv = await axios({ method: 'GET', url: op.reportDataUri, headers: { Authorization: `Bearer ${token}` } });
+      const csv = await axios({ method: 'GET', url: op.reportDataUri });
       return parseReportCsv(csv.data);
     }
 
@@ -54,7 +77,7 @@ async function runReport(networkCode, reportDefinition, authClient) {
     }
   }
 
-  throw new Error(`GAM report timed out after ${(MAX_POLLS * POLL_INTERVAL_MS) / 60000} minutes`);
+  throw new Error(`GAM report ${reportName} timed out after ${(MAX_POLLS * POLL_INTERVAL_MS) / 60000} minutes`);
 }
 
 export async function getLineItemDelivery(networkCode, args, authClient) {

@@ -32,6 +32,24 @@ async function getFreePort() {
   });
 }
 
+export function _makeCallbackHandler(resolve, reject, getServer) {
+  return (req, res) => {
+    const url = new URL(req.url, 'http://localhost');
+    if (url.pathname !== '/callback') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    const code = url.searchParams.get('code');
+    const error = url.searchParams.get('error');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end('<html><body><h2>Authenticated! You can close this tab.</h2></body></html>');
+    getServer().close();
+    if (error) reject(new Error(`OAuth denied: ${error}`));
+    else resolve(code);
+  };
+}
+
 async function runOAuthFlow(clientId) {
   const port = await getFreePort();
   const redirectUri = `http://localhost:${port}/callback`;
@@ -47,16 +65,8 @@ async function runOAuthFlow(clientId) {
   });
 
   const code = await new Promise((resolve, reject) => {
-    const server = createServer((req, res) => {
-      const url = new URL(req.url, `http://localhost:${port}`);
-      const code = url.searchParams.get('code');
-      const error = url.searchParams.get('error');
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end('<html><body><h2>Authenticated! You can close this tab.</h2></body></html>');
-      server.close();
-      if (error) reject(new Error(`OAuth denied: ${error}`));
-      else resolve(code);
-    });
+    let server;
+    server = createServer(_makeCallbackHandler(resolve, reject, () => server));
     server.listen(port, () => {
       console.error('Opening browser for authentication...');
       open(authUrl);
@@ -93,7 +103,7 @@ export async function getAuthClient({ credentialsFile, setup } = {}) {
 
   client.on('tokens', (newTokens) => {
     const existing = loadTokens();
-    saveTokens({ ...existing.tokens, ...newTokens }, clientId);
+    saveTokens({ ...(existing?.tokens ?? {}), ...newTokens }, clientId);
   });
 
   return client;

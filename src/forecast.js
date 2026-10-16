@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getAccessToken } from './auth.js';
-import { parseDate, validateDateRange } from './dates.js';
+import { parseDate, toGamDate, validateDateRange } from './dates.js';
 
 const GAM_BASE = 'https://admanager.googleapis.com/v1';
 
@@ -15,15 +15,17 @@ export async function getForecast(networkCode, args, authClient) {
 
   const token = await getAccessToken(authClient);
 
+  const forecastOptions = {
+    startDate: toGamDate(start),
+    endDate: toGamDate(end),
+  };
+
   if (args.line_item_id) {
     const response = await axios({
-      method: 'GET',
+      method: 'POST',
       url: `${GAM_BASE}/networks/${networkCode}/lineItems/${args.line_item_id}/availabilityForecast`,
       headers: { Authorization: `Bearer ${token}` },
-      params: {
-        'forecastOptions.startDate': start,
-        'forecastOptions.endDate': end,
-      },
+      data: { forecastOptions },
     });
 
     const data = response.data;
@@ -39,13 +41,10 @@ export async function getForecast(networkCode, args, authClient) {
 
   // ad_unit_id path — verify endpoint with GAM v1 REST docs if this 404s
   const response = await axios({
-    method: 'GET',
+    method: 'POST',
     url: `${GAM_BASE}/networks/${networkCode}/adUnits/${args.ad_unit_id}/availabilityForecast`,
     headers: { Authorization: `Bearer ${token}` },
-    params: {
-      'forecastOptions.startDate': start,
-      'forecastOptions.endDate': end,
-    },
+    data: { forecastOptions },
   });
 
   const data = response.data;

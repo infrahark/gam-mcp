@@ -45,4 +45,25 @@ describe('getForecast', () => {
       getForecast('12345', { start_date: '2026-11-01', end_date: '2026-11-30' }, mockAuth)
     ).rejects.toThrow('line_item_id or ad_unit_id');
   });
+
+  it('sends POST with {year,month,day} date objects in body', async () => {
+    mockAxiosInstance.mockResolvedValueOnce({
+      data: { matched: 100000, available: 85000, possible: 120000 },
+    });
+
+    await getForecast('12345',
+      { line_item_id: '999', start_date: '2026-11-01', end_date: '2026-11-30' },
+      mockAuth
+    );
+
+    const call = mockAxiosInstance.mock.calls[0][0];
+    expect(call.method).toBe('POST');
+    expect(call.data).toMatchObject({
+      forecastOptions: {
+        startDate: { year: 2026, month: 11, day: 1 },
+        endDate: { year: 2026, month: 11, day: 30 },
+      },
+    });
+    expect(call).not.toHaveProperty('params');
+  });
 });

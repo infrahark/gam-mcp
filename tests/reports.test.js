@@ -30,6 +30,19 @@ function mockReportFlow(csvData) {
 describe('getLineItemDelivery', () => {
   beforeEach(() => mockAxiosInstance.mockReset());
 
+  it('parses rows where advertiser name contains a comma', async () => {
+    mockReportFlow(
+      'LINE_ITEM_NAME,LINE_ITEM_ID,ORDER_NAME,LINE_ITEM_STATUS,TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS,TOTAL_LINE_ITEM_LEVEL_CLICKS,TOTAL_LINE_ITEM_LEVEL_CTR,LINE_ITEM_DELIVERY_INDICATOR\r\n' +
+      '"Acme, Inc.",111,My Order,DELIVERING,10000,150,0.015,92.3\r\n'
+    );
+    const result = await getLineItemDelivery(NETWORK,
+      { start_date: '2026-10-01', end_date: '2026-10-14' },
+      mockAuth
+    );
+    expect(result[0].lineItemName).toBe('Acme, Inc.');
+    expect(result[0].deliveryPercent).toBe(92.3);
+  });
+
   it('returns parsed rows for a date range', async () => {
     mockReportFlow(
       'LINE_ITEM_NAME,LINE_ITEM_ID,ORDER_NAME,LINE_ITEM_STATUS,TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS,TOTAL_LINE_ITEM_LEVEL_CLICKS,TOTAL_LINE_ITEM_LEVEL_CTR,LINE_ITEM_DELIVERY_INDICATOR\n' +
@@ -61,6 +74,15 @@ describe('getLineItemDelivery', () => {
     expect(mockAxiosInstance).toHaveBeenCalledTimes(5);
   });
 
+  it('downloads CSV without Authorization header (pre-signed GCS URL)', async () => {
+    mockReportFlow(
+      'LINE_ITEM_NAME,LINE_ITEM_ID,ORDER_NAME,LINE_ITEM_STATUS,TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS,TOTAL_LINE_ITEM_LEVEL_CLICKS,TOTAL_LINE_ITEM_LEVEL_CTR,LINE_ITEM_DELIVERY_INDICATOR\n'
+    );
+    await getLineItemDelivery(NETWORK, { start_date: '2026-10-01', end_date: '2026-10-14' }, mockAuth);
+    const downloadCall = mockAxiosInstance.mock.calls[3][0];
+    expect(downloadCall).not.toHaveProperty('headers.Authorization');
+  });
+
   it('throws on FAILED status with report name', async () => {
     mockAxiosInstance
       .mockResolvedValueOnce({ data: { name: 'networks/12345/reports/99' } })
@@ -70,6 +92,20 @@ describe('getLineItemDelivery', () => {
     await expect(
       getLineItemDelivery(NETWORK, { start_date: '2026-10-01', end_date: '2026-10-14' }, mockAuth)
     ).rejects.toThrow('networks/12345/reports/99');
+  });
+
+  it('throws on timeout with report name', async () => {
+    _forTests.setMaxPolls(1);
+    mockAxiosInstance
+      .mockResolvedValueOnce({ data: { name: 'networks/12345/reports/99' } })
+      .mockResolvedValueOnce({ data: {} })
+      .mockResolvedValueOnce({ data: { reportOperation: { reportStatus: 'RUNNING' } } });
+
+    await expect(
+      getLineItemDelivery(NETWORK, { start_date: '2026-10-01', end_date: '2026-10-14' }, mockAuth)
+    ).rejects.toThrow('networks/12345/reports/99');
+
+    _forTests.setMaxPolls(60);
   });
 });
 
