@@ -13,9 +13,36 @@ const { values: cliArgs } = parseArgs({
     'network-code': { type: 'string' },
     'credentials-file': { type: 'string' },
     setup: { type: 'boolean', default: false },
+    help: { type: 'boolean', default: false },
   },
   strict: false,
 });
+
+if (cliArgs.help) {
+  console.log(`gam-report-mcp — Google Ad Manager MCP server for Claude
+
+SETUP (run once):
+  npx gam-report-mcp --setup
+
+  This opens a browser window to sign in with your Google account.
+  Your GAM network is detected automatically and saved locally.
+
+ADD TO CLAUDE (run once after setup):
+  claude mcp add gam-report -- npx gam-report-mcp
+
+  Then restart Claude Code. GAM tools will appear automatically.
+
+OPTIONS:
+  --setup              Run the one-time Google authentication flow
+  --network-code <id>  Manually specify a GAM network code
+  --credentials-file   Use your own GCP OAuth credentials JSON
+  --help               Show this help message
+
+QUESTIONS / ISSUES:
+  https://github.com/infrahark/gam-mcp
+`);
+  process.exit(0);
+}
 
 const authClient = await getAuthClient({
   credentialsFile: cliArgs['credentials-file'],
